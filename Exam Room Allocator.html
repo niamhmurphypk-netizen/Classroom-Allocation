@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Exam Room Allocator</title>
+<style>
+:root{--r:#C4161C;--k:#161618;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:inherit}
+body{margin:0;background:#fff;color:var(--k);font:18px/1.45 system-ui,"Segoe UI",Arial,sans-serif}
+header{border-bottom:6px solid var(--r);padding:18px 20px}h1{margin:0;font-size:1.55rem}
+main{max-width:1200px;margin:auto;padding:0 20px 40px}
+h2{border-left:8px solid var(--r);padding-left:12px;margin:34px 0 12px;font-size:1.4rem}
+#cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:20px}
+.card{border:2px solid var(--k);border-top:8px solid var(--r);padding:12px;border-radius:6px}.card b{display:block;font-size:2.3rem;line-height:1.1}
+.warn{background:#fff0f0;border:2px solid var(--r);color:var(--r);padding:12px;font-weight:700;border-radius:6px;margin-top:14px}
+.ok{background:#eefaf0;border:2px solid #2e9e4f;padding:12px;border-radius:6px;margin-top:12px}
+button{font:inherit;border:2px solid var(--k);background:#fff;color:var(--k);padding:8px 14px;border-radius:6px;cursor:pointer;margin:0 6px 6px 0}
+button.on,.chip.on{background:var(--r);color:#fff;border-color:var(--r)}.chip.am{background:#f5a400}.chip.on.am{background:var(--r)}
+.ov{overflow-x:auto}.lgd{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0;font-size:16px}
+.lgd i,.lg i{display:inline-block;width:18px;height:18px;margin-right:6px;vertical-align:middle;border:1px solid #666}
+.fl{display:flex;align-items:center;gap:8px;margin:6px 0;min-width:900px}.fl>span{width:70px;font-weight:700}
+.rw{display:grid;grid-template-columns:repeat(14,1fr);gap:6px;flex:1}
+.rm{width:100%;margin:0;padding:10px 0;font-weight:700;font-size:16px}.rm:disabled{cursor:default;opacity:1}
+.gy{background:#c9c9cc;color:#555;border-color:#aaa}.gn{background:#2e9e4f;color:#fff}.am{background:#f5a400}.wh{background:#fff}
+.bk{background:repeating-linear-gradient(45deg,#161618,#161618 6px,#C4161C 6px,#C4161C 12px);color:#fff}.sl{outline:4px solid var(--r);outline-offset:2px}
+.lg{display:grid;gap:4px;margin:8px 0;font-size:16px}
+.sg{display:grid;grid-template-columns:44px repeat(10,minmax(88px,1fr));gap:4px;min-width:960px}.sg>b{text-align:center;font-size:14px}
+.st{border:1px solid #888;border-radius:4px;padding:6px 2px;text-align:center;font-size:13px;min-height:52px}
+.ss{border:3px solid var(--r);font-weight:700}.st em{display:block;font-size:11px;color:var(--r);font-style:normal}.hl{outline:4px solid var(--k)}
+input{font:inherit;padding:10px;border:2px solid var(--k);border-radius:6px;width:min(100%,380px)}
+table{border-collapse:collapse;width:100%;min-width:640px}th{background:var(--k);color:#fff;text-align:left}td,th{padding:9px 10px;border-bottom:1px solid #ccc}
+.nb{border:2px solid var(--k);border-radius:6px;padding:12px 16px;margin:12px 0}.nb h3{margin:0 0 6px}.nb p{margin:6px 0}.nb table{min-width:0}
+</style></head><body>
+<header><h1>Exam Room Allocator — Aranya University, Mumbai Main Building</h1></header>
+<main>
+<div id="tabs" style="margin-top:16px"></div><div id="pg1">
+<div id="cards"></div><div id="warn"></div>
+<h2>Building view</h2>
+<div id="mode"></div>
+<div class="lgd"><span><i style="background:#c9c9cc"></i>Regular class</span><span><i style="background:#2e9e4f"></i>Exam room</span><span><i style="background:#f5a400"></i>Released for exam (class off)</span><span><i style="background:#fff"></i>Unused</span><span><i style="background:repeating-linear-gradient(45deg,#161618,#161618 4px,#C4161C 4px,#C4161C 8px)"></i>Blocked (maintenance)</span></div>
+<div class="ov" id="bld"></div>
+<h2>Room view</h2><div id="chips"></div><div class="ov" id="map"></div>
+<h2>Find my seat</h2><input id="q" placeholder="Roll number, e.g. MBA25-0001" oninput="find()"><div id="res"></div>
+<h2>Released classes</h2><div class="ov" id="tbl"></div>
+</div>
+<div id="pg2" hidden><h2>Student notice board</h2><div id="sn"></div><h2>Faculty notices</h2><div id="fn"></div></div>
+</main>
+<script>
+const REG=`101|MBA Sem II – Business Analytics Lab (Practical Batch)|Prof. Meera Iyer|M
+102|BBA Sem V – Human Resource Management|Prof. Shalini Naik|N
+104|BBA Sem III – Marketing Fundamentals|Prof. Leena D'Souza|N
+107|BBA Sem I – Principles of Management|Prof. Tanvi Shah|N
+108|BBA Sem I – Business Economics|Prof. Imran Sheikh|N
+109|MBA Sem III – Guest Lecture: Fintech Trends (Industry Speaker Series)|Prof. Anil Deshmukh|L
+110|BBA Sem III – Cost Accounting|Prof. Gaurav Patil|N
+111|MBA Sem III – Operations Management|Prof. Hemant Pawar|N
+112|MBA Sem I – Marketing Management|Prof. Anjali Verma|N
+113|BBA Sem III – Marketing Fundamentals|Prof. Leena D'Souza|N
+114|MBA Sem II – Organisational Behaviour|Prof. Divya Menon|N
+201|MBA Sem II – Corporate Finance|Prof. Arvind Shetty|N
+202|B.Com Sem III – Auditing|Prof. Nisha Agarwal|N
+204|B.Com Sem V – Financial Management|Prof. Aditi Joshi|N
+206|B.Com Sem I – Financial Accounting|Prof. Manoj Gupta|N
+207|B.Com Sem VI – Project Work Review Session|Prof. Farhan Qureshi|M
+210|MBA Sem I – Financial Accounting|Prof. Sameer Joshi|N
+211|BBA Sem II – Business Communication Tutorial|Prof. Sunita Rao|L
+212|BBA Sem I – Business Economics|Prof. Imran Sheikh|N
+213|MBA Sem I – Marketing Management|Prof. Anjali Verma|N
+214|BBA Sem V – Human Resource Management|Prof. Shalini Naik|N
+301|MBA Sem II – Corporate Finance|Prof. Arvind Shetty|N
+304|BBA Sem VI – Internship Presentation Session|Prof. Pooja Bhatt|M
+306|B.Com Sem I – Business Law|Prof. Rekha Pillai|N
+307|B.Com Sem I – Financial Accounting|Prof. Manoj Gupta|N
+308|B.Com Sem III – Income Tax|Prof. Suresh Iyer|N
+309|MBA Sem III – Strategic Management|Prof. Ritu Kapoor|N
+310|B.Com Sem IV – Elective: Banking & Insurance|Prof. Karan Mehta|L
+311|BBA Sem I – Principles of Management|Prof. Tanvi Shah|N
+401|MBA Sem II – Organisational Behaviour|Prof. Divya Menon|N
+402|B.Com Sem III – Income Tax|Prof. Suresh Iyer|N
+405|B.Com Sem V – Corporate Accounting|Prof. Prakash Kamat|N
+409|MBA Sem III – Strategic Management|Prof. Ritu Kapoor|N
+412|B.Com Sem I – Business Law|Prof. Rekha Pillai|N
+413|MBA Sem I – Elective: Design Thinking|Prof. Neha Kulkarni|L
+501|MBA Sem IV – International Business|Prof. Kavita Rane|N
+508|BBA Sem IV – Tutorial: Business Statistics Problem Practice|Prof. Rohit Nair|L
+510|MBA Sem IV – International Business|Prof. Kavita Rane|N
+511|BBA Sem III – Cost Accounting|Prof. Gaurav Patil|N
+606|MBA Sem III – Operations Management|Prof. Hemant Pawar|N
+609|MBA Sem I – Financial Accounting|Prof. Sameer Joshi|N
+611|MBA Sem IV – Dissertation Mentoring Hour|Prof. Vikram Sathe|M`;
+const FREE=new Set("103,105,106,203,205,208,209,302,303,305,312,313,314,403,404,406,407,408,410,411,414,502,503,504,505,506,507,509,512,513,514,601,602,603,604,605,607,608,610,612,613,614".split(","));
+const P=[["MBA-301","Strategic Management",420,"MBA25-"],["BBA-201","Business Statistics",380,"BBA25-"],["BCM-301","Corporate Accounting",360,"BCOM25-"],["MBA-101","Managerial Economics",350,"MBA26-"],["BBA-401","Marketing Management",340,"BBA24-"],["BCM-501","Auditing and Assurance",330,"BCOM24-"],["BBA-101","Principles of Management",310,"BBA26-"],["BCM-101","Financial Accounting",290,"BCOM26-"]];
+const COL=["#ffc9c9","#c9e0ff","#cdeec2","#ffe9a8","#ddc9ff","#ffd2a6","#bdeeea","#f4c4e2"],CN=["top-left","top-right","bottom-left","bottom-right"];
+const R={};REG.split("\n").forEach(l=>{const[a,c,f,p]=l.split("|");R[a]={c,f,p}});
+const EX="15 December 2026, 10:00 to 13:00";let tab="a",blocked=new Set,mode="block",sel=null,hl=null,S;const $=i=>document.getElementById(i);
+function sim(list){const rem=P.map(p=>p[2]),cnt=P.map(()=>0),out={},loc={};
+for(const id of list){const idx=rem.map((r,i)=>i).filter(i=>rem[i]>0).sort((a,b)=>rem[b]-rem[a]||a-b).slice(0,4);if(!idx.length)break;
+const g=Array(60).fill(null);
+const bl=idx.map((i,k)=>{const t=Math.min(15,rem[i]);for(let j=0;j<t;j++){const r=j/5|0,c=j%5,row=k<2?r:5-r,col=k%2?9-c:c,roll=P[i][3]+String(cnt[i]+j+1).padStart(4,"0");g[row*10+col]={i,roll,s:j?0:k+1};loc[roll]=[id,row+1,col+1,i]}
+const o={i,k,t,a:P[i][3]+String(cnt[i]+1).padStart(4,"0"),b:P[i][3]+String(cnt[i]+t).padStart(4,"0")};cnt[i]+=t;rem[i]-=t;return o});
+out[id]={g,bl}}
+return{out,loc,un:rem.reduce((a,b)=>a+b,0)}}
+function calc(){const base=[...FREE].filter(i=>!blocked.has(i)),cand=Object.keys(R).filter(i=>R[i].p!="N"&&!blocked.has(i)).sort((a,b)=>(R[a].p=="M")-(R[b].p=="M")||a-b),rel=[];let s;
+for(;;){s=sim([...base,...rel].sort());if(!s.un||rel.length>=cand.length)break;rel.push(cand[rel.length])}
+S={...s,rel:rel.filter(i=>s.out[i]).sort(),used:Object.keys(s.out).sort()}}
+function clk(id){const r=R[id];if(mode=="block"){if(blocked.has(id))blocked.delete(id);else if(!r||S.rel.includes(id))blocked.add(id);else return}else if(S.out[id]){sel=id;hl=null}render()}
+function find(){const q=$("q").value.toUpperCase().replace(/\s/g,"");if(!q){$("res").innerHTML="";return}const l=S.loc[q];
+$("res").innerHTML=l?`<div class="ok"><b>${q}</b> — Floor ${l[0][0]}, Room ${l[0]}, Row ${l[1]}, Seat ${l[2]} (${P[l[3]][0]} ${P[l[3]][1]}) <button onclick="sel='${l[0]}';hl='${q}';render();$('map').scrollIntoView()">Show on seat map</button></div>`:`<div class="warn">No seat found for ${q}. Check the roll number${S.un?"; some students may be unseated.":"."}</div>`}
+function render(){calc();const n=P.reduce((a,p)=>a+p[2],0),seats=S.used.length*60;
+$("cards").innerHTML=[["Students",n],["Exam rooms used",S.used.length],["Rooms released",S.rel.length],["Seats",seats],["Spare seats",seats-(n-S.un)]].map(([a,b])=>`<div class="card"><b>${b}</b>${a}</div>`).join("");
+$("warn").innerHTML=S.un?`<div class="warn">⚠ Not enough rooms: ${S.un} students cannot be seated. No more reschedulable rooms are available.</div>`:"";
+$("mode").innerHTML=`<button class="${mode=="block"?"on":""}" onclick="mode='block';render()">Click to block / unblock</button><button class="${mode=="view"?"on":""}" onclick="mode='view';render()">Click to open seat map</button><button onclick="blocked.clear();render()">Clear all blocks (${blocked.size})</button>`;
+let h="";for(let f=6;f>=1;f--){h+=`<div class="fl"><span>Floor ${f}</span><div class="rw">`;
+for(let n=1;n<=14;n++){const id=""+(f*100+n),r=R[id],b=blocked.has(id),u=S.out[id],rl=S.rel.includes(id),c=b?"bk":r?(rl?"am":"gy"):(u?"gn":"wh");
+h+=`<button class="rm ${c}${sel==id?" sl":""}" ${b||!r||rl?`onclick="clk('${id}')"`:"disabled"} title="${r?r.c:"Free room"}">${id}</button>`}h+="</div></div>"}
+$("bld").innerHTML=h;
+$("chips").innerHTML=S.used.map(id=>`<button class="chip${S.rel.includes(id)?" am":""}${sel==id?" on":""}" onclick="sel='${id}';hl=null;render()">${id}</button>`).join("");
+if(sel&&!S.out[sel])sel=null;
+if(!sel)$("map").innerHTML="<p>Select an exam room above to see its seat map.</p>";else{const o=S.out[sel];
+let m=`<h3>Room ${sel}, Floor ${sel[0]}${S.rel.includes(sel)?" (released class room)":""}</h3><div class="lg">`+o.bl.map(b=>`<span><i style="background:${COL[b.i]}"></i>Paper ${b.k+1}: ${P[b.i][0]} ${P[b.i][1]} — ${b.t} students, ${b.a} to ${b.b}, starts ${CN[b.k]} (★)</span>`).join("")+`</div><div class="sg"><b></b>`+[...Array(10)].map((_,i)=>`<b>Seat ${i+1}</b>`).join("");
+for(let r=0;r<6;r++){m+=`<b>Row ${r+1}</b>`;for(let c=0;c<10;c++){const x=o.g[r*10+c];m+=x?`<div class="st${x.s?" ss":""}${x.roll==hl?" hl":""}" style="background:${COL[x.i]}">${x.roll}${x.s?`<em>★ P${x.s} start</em>`:""}</div>`:`<div class="st"></div>`}}
+$("map").innerHTML=m+"</div>"}
+$("tbl").innerHTML=S.rel.length?`<table><tr><th>Room<th>Class<th>Faculty<th>Priority</tr>`+S.rel.map(id=>`<tr><td>${id}<td>${R[id].c}<td>${R[id].f}<td>${R[id].p=="L"?"Low":"Medium"}`).join("")+"</table>":"<p>No classes are released.</p>";
+find();notes()}
+function notes(){$("tabs").innerHTML=[["a","Allocator"],["n","Notices"]].map(([k,t])=>`<button class="${tab==k?"on":""}" onclick="tab='${k}';render()">${t}</button>`).join("");
+$("pg1").hidden=tab!="a";$("pg2").hidden=tab!="n";
+$("sn").innerHTML=(S.un?`<div class="warn">⚠ ${S.un} students are not seated yet; these notices are incomplete until more rooms are available.</div>`:"")+P.map((p,i)=>{const rows=S.used.flatMap(id=>S.out[id].bl.filter(b=>b.i==i).map(b=>`<tr><td>${id}<td>Floor ${id[0]}<td>${b.a} to ${b.b}<td>${b.t}`));
+return `<div class="nb"><h3>${p[0]} ${p[1]}</h3><p>${EX} — ${p[2]} students</p><table><tr><th>Room<th>Floor<th>Roll numbers<th>Students</tr>${rows.join("")}</table></div>`}).join("");
+const fm={};S.rel.forEach(id=>(fm[R[id].f]=fm[R[id].f]||[]).push(id));
+$("fn").innerHTML=Object.keys(fm).length?Object.entries(fm).map(([f,ids])=>{const m=ids.length>1;return `<div class="nb"><p>Dear ${f},</p><p>Your ${m?"classes":"class"} ${ids.map(id=>`"${R[id].c}" in Room ${id} (Floor ${id[0]})`).join(" and ")} ${m?"are":"is"} scheduled during the exam slot on ${EX}. As ${m?"these rooms are":"this room is"} needed for examinations, we kindly request you to reschedule ${m?"them":"the class"} for another time.</p><p>Thank you for your understanding and cooperation.</p><p>Regards,<br>Examination Cell, Aranya University</p></div>`}).join(""):"<p>No classes are released, so no faculty notices are needed.</p>"}
+render();
+</script></body></html>
